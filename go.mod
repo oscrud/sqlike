@@ -1,4 +1,4 @@
-module github.com/oscrud/oscrud_sqlike
+module github.com/oscrud/oscrud-sqlike
 
 go 1.13
 
