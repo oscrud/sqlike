@@ -1,6 +1,7 @@
 package sqlike
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -54,7 +55,7 @@ func (p Paginator) BuildMeta() map[string]interface{} {
 }
 
 // GetResult :
-func (p *Paginator) GetResult(table *sqlike.Table, result interface{}) error {
+func (p *Paginator) GetResult(ctx context.Context, table *sqlike.Table, result interface{}) error {
 	query := actions.Paginate().Limit(uint(p.Limit + 1))
 	options := options.Paginate().SetDebug(true)
 	selects := make([]interface{}, 0)
@@ -81,13 +82,13 @@ func (p *Paginator) GetResult(table *sqlike.Table, result interface{}) error {
 		}
 	}
 
-	paginator, err := table.Paginate(query, options)
+	paginator, err := table.Paginate(ctx, query, options)
 	if err != nil {
 		return err
 	}
 
 	if p.Cursor != "" {
-		if err := paginator.NextPage(p.Cursor); err != nil {
+		if err := paginator.NextCursor(ctx, p.Cursor); err != nil {
 			return err
 		}
 	}
