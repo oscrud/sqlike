@@ -2,6 +2,7 @@ package sqlike
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 
@@ -19,7 +20,6 @@ var (
 // Paginator :
 type Paginator struct {
 	Cursor string
-	Offset int
 	Page   int
 	Limit  int
 	Order  map[string]string
@@ -40,10 +40,6 @@ func (p Paginator) BuildMeta() map[string]interface{} {
 		meta["cursor"] = p.Cursor
 	}
 
-	if p.Offset != 0 {
-		meta["offset"] = p.Offset
-	}
-
 	if p.Limit != 0 {
 		meta["limit"] = p.Limit
 	}
@@ -57,7 +53,7 @@ func (p Paginator) BuildMeta() map[string]interface{} {
 // GetResult :
 func (p *Paginator) GetResult(ctx context.Context, table *sqlike.Table, result interface{}) error {
 	query := actions.Paginate().Limit(uint(p.Limit + 1))
-	options := options.Paginate().SetDebug(true)
+	options := options.Paginate()
 	selects := make([]interface{}, 0)
 
 	if len(p.Select) > 0 {
@@ -88,7 +84,12 @@ func (p *Paginator) GetResult(ctx context.Context, table *sqlike.Table, result i
 	}
 
 	if p.Cursor != "" {
-		if err := paginator.NextCursor(ctx, p.Cursor); err != nil {
+		cursor, err := base64.StdEncoding.DecodeString(p.Cursor)
+		if err != nil {
+			return err
+		}
+
+		if err := paginator.NextCursor(ctx, string(cursor)); err != nil {
 			return err
 		}
 	}
@@ -100,9 +101,11 @@ func (p *Paginator) GetResult(ctx context.Context, table *sqlike.Table, result i
 
 	slice = slice.Elem()
 	if v := slice.Len(); v > p.Limit {
-		key := slice.Index(v - 2).Elem().FieldByName("Key")
+		key := slice.Index(v - 1).Elem().FieldByName("Key")
 		if key.CanInterface() {
-			p.Cursor = fmt.Sprintf("%v", key.Interface())
+			cursorValue := fmt.Sprintf("%v", key.Interface())
+			cursor := base64.StdEncoding.EncodeToString([]byte(cursorValue))
+			p.Cursor = cursor
 			slice.Set(slice.Slice(0, v-1))
 		}
 	} else {

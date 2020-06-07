@@ -7,7 +7,7 @@ import (
 
 	"github.com/oscrud/oscrud"
 	sql "github.com/si3nloong/sqlike/sqlike"
-	"github.com/si3nloong/sqlike/sqlike/options"
+	"github.com/si3nloong/sqlike/sqlike/actions"
 )
 
 // Sqlike :
@@ -90,7 +90,11 @@ func (service Service) Create(ctx oscrud.Context) oscrud.Context {
 		return ctx.Stack(500, err).End()
 	}
 
-	return ctx.JSON(200, data).End()
+	res, err := model.ToResult()
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+	return ctx.JSON(200, res).End()
 }
 
 // Delete :
@@ -101,10 +105,31 @@ func (service Service) Delete(ctx oscrud.Context) oscrud.Context {
 	}
 
 	model := qm.Interface().(oscrud.ServiceModel)
-	if err := service.table.DestroyOne(ctx.Context(), model); err != nil {
+	query, err := model.ToQuery()
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+
+	action := actions.FindOne().Where(query)
+	result := service.table.FindOne(ctx.Context(), action)
+	if err := result.Decode(model); err != nil {
+		return ctx.Error(404, err).End()
+	}
+
+	delete, err := model.ToDelete()
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+
+	if err := service.table.DestroyOne(ctx.Context(), delete); err != nil {
 		return ctx.Stack(500, err).End()
 	}
-	return ctx.JSON(200, model).End()
+
+	res, err := delete.(oscrud.ServiceModel).ToResult()
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+	return ctx.JSON(200, res).End()
 }
 
 // Patch :
@@ -114,16 +139,33 @@ func (service Service) Patch(ctx oscrud.Context) oscrud.Context {
 		return ctx.Stack(500, err).End()
 	}
 
-	model := qm.Interface().(oscrud.ServiceModel)
-	data, err := model.ToUpdate()
+	incoming := qm.Interface().(oscrud.ServiceModel)
+	query, err := incoming.ToQuery()
 	if err != nil {
 		return ctx.Error(400, err).End()
 	}
 
-	if _, err := service.table.InsertOne(ctx.Context(), data, options.InsertOne().SetMode(options.InsertOnDuplicate)); err != nil {
+	model := service.newModel().Interface().(oscrud.ServiceModel)
+	action := actions.FindOne().Where(query)
+	result := service.table.FindOne(ctx.Context(), action)
+	if err := result.Decode(model); err != nil {
+		return ctx.Error(404, err).End()
+	}
+
+	patch, err := model.ToPatch(incoming)
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+
+	if err := service.table.ModifyOne(ctx.Context(), patch); err != nil {
 		return ctx.Stack(500, err).End()
 	}
-	return ctx.JSON(200, data).End()
+
+	res, err := patch.(oscrud.ServiceModel).ToResult()
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+	return ctx.JSON(200, res).End()
 }
 
 // Update :
@@ -133,16 +175,33 @@ func (service Service) Update(ctx oscrud.Context) oscrud.Context {
 		return ctx.Stack(500, err).End()
 	}
 
-	model := qm.Interface().(oscrud.ServiceModel)
-	data, err := model.ToUpdate()
+	incoming := qm.Interface().(oscrud.ServiceModel)
+	query, err := incoming.ToQuery()
 	if err != nil {
 		return ctx.Error(400, err).End()
 	}
 
-	if err := service.table.ModifyOne(ctx.Context(), data); err != nil {
+	model := service.newModel().Interface().(oscrud.ServiceModel)
+	action := actions.FindOne().Where(query)
+	result := service.table.FindOne(ctx.Context(), action)
+	if err := result.Decode(model); err != nil {
+		return ctx.Error(404, err).End()
+	}
+
+	update, err := model.ToUpdate(incoming)
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+
+	if err := service.table.ModifyOne(ctx.Context(), update); err != nil {
 		return ctx.Stack(500, err).End()
 	}
-	return ctx.JSON(200, data).End()
+
+	res, err := update.(oscrud.ServiceModel).ToResult()
+	if err != nil {
+		return ctx.Error(400, err).End()
+	}
+	return ctx.JSON(200, res).End()
 }
 
 // Get :
@@ -197,12 +256,12 @@ func (service Service) Get(ctx oscrud.Context) oscrud.Context {
 func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 	query := new(oscrud.Query)
 	if err := ctx.Bind(query); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Error(400, err).End()
 	}
 
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Error(400, err).End()
 	}
 
 	model := qm.Interface().(oscrud.ServiceModel)
@@ -229,7 +288,6 @@ func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 		}
 	}
 
-	var err error
 	queries, err := model.ToQuery()
 	if err != nil {
 		return ctx.Error(400, err).End()
@@ -237,7 +295,6 @@ func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 
 	paginate := Paginator{
 		Cursor: query.Cursor,
-		Offset: query.Offset,
 		Page:   query.Page,
 		Limit:  query.Limit,
 		Order:  order,
