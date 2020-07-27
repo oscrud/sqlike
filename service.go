@@ -76,144 +76,144 @@ func (service Service) newModels() reflect.Value {
 func (service Service) Create(ctx oscrud.Context) oscrud.Context {
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	model := qm.Interface().(oscrud.ServiceModel)
 	data, err := model.ToCreate()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	_, err = service.table.InsertOne(ctx.Context(), data)
 	if err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	res, err := model.ToResult()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
-	return ctx.JSON(200, res).End()
+	return ctx.JSON(200, res)
 }
 
 // Delete :
 func (service Service) Delete(ctx oscrud.Context) oscrud.Context {
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	model := qm.Interface().(oscrud.ServiceModel)
 	query, err := model.ToQuery()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	action := actions.FindOne().Where(query)
 	result := service.table.FindOne(ctx.Context(), action)
 	if err := result.Decode(model); err != nil {
-		return ctx.Error(404, err).End()
+		return ctx.Error(404, err)
 	}
 
 	delete, err := model.ToDelete()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	if err := service.table.DestroyOne(ctx.Context(), delete); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	res, err := delete.(oscrud.ServiceModel).ToResult()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
-	return ctx.JSON(200, res).End()
+	return ctx.JSON(200, res)
 }
 
 // Patch :
 func (service Service) Patch(ctx oscrud.Context) oscrud.Context {
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	incoming := qm.Interface().(oscrud.ServiceModel)
 	query, err := incoming.ToQuery()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	model := service.newModel().Interface().(oscrud.ServiceModel)
 	action := actions.FindOne().Where(query)
 	result := service.table.FindOne(ctx.Context(), action)
 	if err := result.Decode(model); err != nil {
-		return ctx.Error(404, err).End()
+		return ctx.Error(404, err)
 	}
 
 	patch, err := model.ToPatch(incoming)
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	if err := service.table.ModifyOne(ctx.Context(), patch); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	res, err := patch.(oscrud.ServiceModel).ToResult()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
-	return ctx.JSON(200, res).End()
+	return ctx.JSON(200, res)
 }
 
 // Update :
 func (service Service) Update(ctx oscrud.Context) oscrud.Context {
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	incoming := qm.Interface().(oscrud.ServiceModel)
 	query, err := incoming.ToQuery()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	model := service.newModel().Interface().(oscrud.ServiceModel)
 	action := actions.FindOne().Where(query)
 	result := service.table.FindOne(ctx.Context(), action)
 	if err := result.Decode(model); err != nil {
-		return ctx.Error(404, err).End()
+		return ctx.Error(404, err)
 	}
 
 	update, err := model.ToUpdate(incoming)
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	if err := service.table.ModifyOne(ctx.Context(), update); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	res, err := update.(oscrud.ServiceModel).ToResult()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
-	return ctx.JSON(200, res).End()
+	return ctx.JSON(200, res)
 }
 
 // Get :
 func (service Service) Get(ctx oscrud.Context) oscrud.Context {
 	query := new(oscrud.QueryOne)
 	if err := ctx.Bind(query); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	model := qm.Interface().(oscrud.ServiceModel)
@@ -227,7 +227,7 @@ func (service Service) Get(ctx oscrud.Context) oscrud.Context {
 
 	queries, err := model.ToQuery()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	paginate := Paginator{
@@ -238,30 +238,30 @@ func (service Service) Get(ctx oscrud.Context) oscrud.Context {
 
 	slice := service.newModels()
 	if err := paginate.GetResult(ctx.Context(), service.table, slice.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	if slice.Elem().Len() == 1 {
 		data := slice.Elem().Index(0).Interface().(oscrud.ServiceModel)
 		result, err := data.ToResult()
 		if err != nil {
-			return ctx.Error(400, err).End()
+			return ctx.Error(400, err)
 		}
-		return ctx.JSON(200, result).End()
+		return ctx.JSON(200, result)
 	}
-	return ctx.Error(404, errors.New("entity not found")).End()
+	return ctx.Error(404, errors.New("entity not found"))
 }
 
 // Find :
 func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 	query := new(oscrud.Query)
 	if err := ctx.Bind(query); err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	qm := service.newModel()
 	if err := ctx.BindAll(qm.Interface()); err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	model := qm.Interface().(oscrud.ServiceModel)
@@ -290,7 +290,7 @@ func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 
 	queries, err := model.ToQuery()
 	if err != nil {
-		return ctx.Error(400, err).End()
+		return ctx.Error(400, err)
 	}
 
 	paginate := Paginator{
@@ -304,7 +304,7 @@ func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 
 	slice := service.newModels()
 	if err := paginate.GetResult(ctx.Context(), service.table, slice.Interface()); err != nil {
-		return ctx.Stack(500, err).End()
+		return ctx.Stack(500, err)
 	}
 
 	data := slice.Elem()
@@ -312,7 +312,7 @@ func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 	for i := 0; i < data.Len(); i++ {
 		result[i], err = data.Index(i).Interface().(oscrud.ServiceModel).ToResult()
 		if err != nil {
-			return ctx.Error(400, err).End()
+			return ctx.Error(400, err)
 		}
 	}
 
@@ -320,5 +320,5 @@ func (service Service) Find(ctx oscrud.Context) oscrud.Context {
 		"meta":   paginate.BuildMeta(),
 		"result": result,
 	}
-	return ctx.JSON(200, response).End()
+	return ctx.JSON(200, response)
 }
